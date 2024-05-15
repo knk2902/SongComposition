@@ -22,7 +22,7 @@
         z-index: 99;
         opacity: 1;
         transform: rotate(180deg);
-        display:none;
+        display: none;
       }
       .animation {
         height: 95px;
@@ -73,88 +73,107 @@
       .animation span:nth-child(5) {
         animation-delay: 1s;
       }
+
+      body {
+        background-image: url("static/images/bg.png");
+        background-repeat:no-repeat;
+        background-size: cover;
+        height:100%;
+        width:100%;
+      }
+
+      .container {
+        display: flex;
+        justify-content: space-evenly;
+        margin: 50px;
+        align-items: center;
+      }
+
+      .card {
+        box-shadow: 0px 1px 4px 2px rgba(0, 0, 0, 0.25);
+        border-radius: 11px;
+        min-height: 350px;
+        width: 500px;
+        padding: 20px;
+        margin: 20px;
+        text-align: center;
+        background:#0e81a7b1;
+        color:white
+      }
+
+      .button {
+        box-shadow: 0px 1px 4px 2px rgba(0, 0, 0, 0.25);
+        border: none;
+        border-radius: 11px;
+        padding: 10px;
+        background: lightblue;
+        width: 100px;
+        cursor: pointer;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      form {
+        margin-top: 20px;
+      }
+
+      select {
+        border: 1px solid black;
+        border-radius: 11px;
+        font-size: 14px;
+        width: 150px;
+        padding-left: 10px;
+        outline: none;
+      }
+
+      .vocalsContainer label {
+        display: inline-block;
+        width: 200px;
+      }
+
+      .vocalsContainer input[type="range"] {
+        width: 120px;
+      }
+
+      .vocalsContainer span {
+        width: 20px;
+        display: inline-block;
+      }
+
+      .navbar {
+        box-shadow: 0px 1px 4px 2px rgba(0, 0, 0, 0.25);
+        height: 60px;
+        position: sticky;
+        top: 0;
+        background-color: #064357;
+        color: white;
+        padding: 15px;
+        padding-left: 30px;
+        font-size: 20px;
+        background-size: cover;
+      }
+
+      .footer {
+        box-shadow: 0px 1px 4px 2px rgba(0, 0, 0, 0.25);
+        height: max-content;
+        background-color: grey;
+        color: white;
+        padding: 15px;
+        padding-left: 30px;
+        font-size: 16px;
+        margin-top: 200px;
+        text-align: center;
+      }
+
+      audio,
+      midi-player {
+        margin-top: 20px;
+      }
     </style>
   </head>
   <body>
-    <h1>Generate Lyrics</h1>
-    <form id="lyricsForm">
-      <label for="user_input">Enter a starting string for the song:</label>
-      <input type="text" id="user_input" name="user_input" /><br /><br />
-
-      <label for="">Temperature Value (0-1):</label>
-      <label for="">Predictive</label>
-      <input
-        type="range"
-        id="slider_value"
-        name="slider_value"
-        min="0"
-        max="1"
-        step="0.01"
-        value="0.5"
-      />
-      <label for="">Creative</label>
-      <br /><br />
-
-      <input type="button" id="generateLyricsBtn" value="Generate" />
-    </form>
-    <div id="lyricsResult"></div>
-
-    <h1>Generate Music</h1>
-    <form id="musicForm">
-      <label for="user_input_music">Music Note Starting Value (20-100):</label>
-      <input
-        type="range"
-        id="slider_value1"
-        name="slider_value1"
-        min="20"
-        max="100"
-        step="1"
-        value="20"
-      />
-      <br /><br />
-
-      <label for="slider_value2">Temperature Value (0-1):</label>
-      <label for="">Predictive</label>
-      <input
-        type="range"
-        id="slider_value2"
-        name="slider_value2"
-        min="0"
-        max="1"
-        step="0.01"
-        value="0.5"
-      />
-      <label for="">Creative</label>
-      <br /><br />
-
-      <input type="button" id="generateMusicBtn" value="Generate" />
-    </form>
-    <div id="musicResult" style="display: none">
-      <midi-player
-        src="{{ url_for('serve_audio', filename='music/generated_music/output.mid') }}"
-        sound-font
-      ></midi-player>
-      <a
-        href="{{ url_for('download_audio', filename='music/generated_music/output.mid') }}"
-        download
-        >Download MIDI</a
-      >
-    </div>
-
-    <h1>Vocals Generation</h1>
-    <form id="vocalsForm">
-      <input type="button" id="generateVocalsBtn" value="Generate" />
-    </form>
-    <div id="vocalsResult" style="display: none">
-      <audio controls>
-        <source
-          src="{{ url_for('serve_audio', filename='vocals/voice.wav') }}"
-          type="audio/wav"
-        />
-        Your browser does not support the audio element.
-      </audio>
-    </div>
-
     <div class="loader">
       <div class="animation">
         <span></span>
@@ -164,13 +183,296 @@
         <span></span>
       </div>
     </div>
+    <nav class="navbar">
+      <a classs="navbar-head">House of Music</a>
+    </nav>
+    <div class="container">
+      <div class="card" id="lyrics_card">
+        <h1>Generate Lyrics</h1>
+        <form id="lyricsForm">
+          <label for="user_input">Enter a starting string for the song:</label>
+          <input
+            type="text"
+            id="user_input"
+            name="user_input"
+            style="
+              border-radius: 11px;
+              outline: none;
+              border: 1px solid black;
+              padding: 5px;
+              width: 100%;
+            "
+          /><br /><br />
+
+          <label for="">Temperature Value (0-1):</label>
+          <br />
+          <div style="text-align: center; margin-top: 20px">
+            <label for="">Predictive</label>
+            <input
+              type="range"
+              id="slider_value"
+              name="slider_value"
+              min="0.1"
+              max="1"
+              step="0.1"
+              value="0.5"
+            />
+            <label for="">Creative</label>
+            <p id="sliderValue">0.5</p>
+          </div>
+          <br /><br />
+
+          <div style="display: flex; justify-content: space-evenly">
+            <input
+              class="button"
+              type="button"
+              id="generateLyricsBtn"
+              value="Generate"
+            />
+            <input
+              class="button"
+              type="button"
+              id="generateLyricsNext"
+              value="Next"
+            />
+          </div>
+        </form>
+        <div
+          id="lyricsResult"
+          style="text-align: left; margin-top: 20px; overflow: auto"
+        ></div>
+      </div>
+
+      <div class="card" id="music_card">
+        <h1>Generate Music</h1>
+        <form id="musicForm">
+          <label for="user_input_music"
+            >Music Note Starting Value (20-100):</label
+          >
+          <div style="text-align: center; margin-top: 20px">
+            <input
+              type="range"
+              id="slider_value1"
+              name="slider_value1"
+              min="20"
+              max="100"
+              step="1"
+              value="20"
+            />
+            <p id="sliderValue1">20</p>
+          </div>
+
+          <br />
+
+          <label for="slider_value2">Temperature Value (0-1):</label>
+          <br />
+          <div style="text-align: center; margin-top: 20px">
+            <label for="">Predictive</label>
+            <input
+              type="range"
+              id="slider_value2"
+              name="slider_value2"
+              min="0.1"
+              max="1"
+              step="0.1"
+              value="0.5"
+            />
+            <label for="">Creative</label>
+            <p id="sliderValue2">0.5</p>
+          </div>
+
+          <br /><br />
+
+          <div style="display: flex; justify-content: space-evenly">
+            <input
+              class="button"
+              type="button"
+              id="generateMusicBtn"
+              value="Generate"
+            />
+            <input
+              class="button"
+              type="button"
+              id="generateMusicNext"
+              value="Next"
+            />
+          </div>
+        </form>
+        <div id="musicResult" style="display: none">
+          <midi-player
+            id="music_player"
+            src="{{ url_for('serve_audio', filename='music/generated_music/music.mid') }}"
+            sound-font
+          ></midi-player>
+        </div>
+      </div>
+
+      <div class="card" id="vocals_card">
+        <h1>Vocals Generation</h1>
+        <form id="vocalsForm">
+          <div
+            class="vocalsContainer"
+            style="text-align: center; margin-top: 20px"
+          >
+            <label for="">Tempo</label>
+            <input
+              type="range"
+              id="tempo"
+              name="tempo"
+              min="50"
+              max="100"
+              step="1"
+              value="80"
+            />
+            <span id="tempoValue">80</span>
+            <br />
+            <br />
+
+            <label for="">Gender</label>
+            <select id="gender">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+            <br />
+            <br />
+
+            <label for="">Voice Index</label>
+            <select id="voice_index">
+              <option value="0">0</option>
+              <option value="1">1</option>
+            </select>
+            <br />
+            <br />
+
+            <label for="">Vibrato Intensity</label>
+            <input
+              type="range"
+              id="vibrato_power"
+              name="vibrato_power"
+              min="0"
+              max="2"
+              step="1"
+              value="1"
+            />
+            <span id="vibratoPowerValue">1</span>
+            <br />
+            <br />
+
+            <label for="">Pitch shift</label>
+            <input
+              type="range"
+              id="pitch_shift"
+              name="pitch_shift"
+              min="-24"
+              max="24"
+              step="1"
+              value="0"
+            />
+            <span id="pitchShiftValue">0</span>
+            <br />
+            <br />
+
+            <label for="">Gender parameter</label>
+            <input
+              type="range"
+              id="gender_parameter"
+              name="gender_parameter"
+              min="-0.8"
+              max="0.8"
+              step="0.01"
+              value="0.55"
+            />
+            <span id="genderParameterValue">0.55</span>
+          </div>
+          <br />
+          <br />
+
+          <div style="display: flex; justify-content: space-evenly">
+            <input
+              class="button"
+              type="button"
+              id="generateVocalsBtn"
+              value="Generate"
+            />
+            <input
+              class="button"
+              type="button"
+              id="generateVocalsNext"
+              value="Next"
+            />
+          </div>
+        </form>
+        <div id="vocalsResult" style="display: none">
+          <audio id=" " controls>
+            <source
+              src="{{ url_for('serve_audio', filename='vocals/voice.wav') }}"
+              type="audio/wav"
+            />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </div>
+    </div>
+    <div style="margin: 50px">
+      <div class="card" id="export_song_card" style="width: auto;">
+        <h1>Export Song</h1>
+        <input
+          class="button"
+          type="button"
+          id="generateSongBtn"
+          value="Generate"
+        />
+        <div id="songResult" style="display: none">
+          <audio id="song_player" controls>
+            <source
+              src="{{ url_for('serve_audio', filename='song/song.wav') }}"
+              type="audio/wav"
+            />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </div>
+    </div>
+    <footer class="footer">
+      <pre>
+        Project Implemented By: 
+        Kaustubh Khachane 
+        Parth Kabadi 
+        Priyanshu Singh
+        Harsh Pande
+      </pre>
+    </footer>
   </body>
+
   <script>
     $(document).ready(function () {
+      $("#music_card").hide();
+      $("#vocals_card").hide();
+      $("#export_song_card").hide();
+
+      $("#generateLyricsNext").click(function (e) {
+        e.preventDefault();
+        $("#music_card").show();
+      });
+      $("#generateMusicNext").click(function (e) {
+        e.preventDefault();
+        $("#vocals_card").show();
+      });
+      $("#generateVocalsNext").click(function (e) {
+        e.preventDefault();
+        $("#export_song_card").show();
+      });
+
       $("#generateLyricsBtn").click(function (e) {
+        $("#lyricsResult").html("");
         e.preventDefault();
         var userInput = $("#user_input").val();
         var sliderValue = $("#slider_value").val();
+
+        if (userInput == "") {
+          alert("Starting String cannot be empty!!");
+          return;
+        }
         $(".loader").show();
 
         $.ajax({
@@ -198,6 +500,8 @@
 
       // AJAX for generating music
       $("#generateMusicBtn").click(function (e) {
+        $("#musicResult").hide();
+        $("#music_player").remove();
         $(".loader").show();
         e.preventDefault();
         var sliderValue1 = $("#slider_value1").val();
@@ -212,28 +516,68 @@
           },
           success: function (response) {
             $(".loader").hide();
+            $("#musicResult").append(
+              '<midi-player id="music_player" src="{{ url_for("serve_audio", filename="music/generated_music/music.mid") }}" sound-font></midi-player>'
+            );
+            $("#musicResult").append(
+              '<a id="music_download" href="{{ url_for("download_audio", filename="music/generated_music/music.mid") }}" download ><svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M12.5535 16.5061C12.4114 16.6615 12.2106 16.75 12 16.75C11.7894 16.75 11.5886 16.6615 11.4465 16.5061L7.44648 12.1311C7.16698 11.8254 7.18822 11.351 7.49392 11.0715C7.79963 10.792 8.27402 10.8132 8.55352 11.1189L11.25 14.0682V3C11.25 2.58579 11.5858 2.25 12 2.25C12.4142 2.25 12.75 2.58579 12.75 3V14.0682L15.4465 11.1189C15.726 10.8132 16.2004 10.792 16.5061 11.0715C16.8118 11.351 16.833 11.8254 16.5535 12.1311L12.5535 16.5061Z" fill="#1C274C" /> <path d="M3.75 15C3.75 14.5858 3.41422 14.25 3 14.25C2.58579 14.25 2.25 14.5858 2.25 15V15.0549C2.24998 16.4225 2.24996 17.5248 2.36652 18.3918C2.48754 19.2919 2.74643 20.0497 3.34835 20.6516C3.95027 21.2536 4.70814 21.5125 5.60825 21.6335C6.47522 21.75 7.57754 21.75 8.94513 21.75H15.0549C16.4225 21.75 17.5248 21.75 18.3918 21.6335C19.2919 21.5125 20.0497 21.2536 20.6517 20.6516C21.2536 20.0497 21.5125 19.2919 21.6335 18.3918C21.75 17.5248 21.75 16.4225 21.75 15.0549V15C21.75 14.5858 21.4142 14.25 21 14.25C20.5858 14.25 20.25 14.5858 20.25 15C20.25 16.4354 20.2484 17.4365 20.1469 18.1919C20.0482 18.9257 19.8678 19.3142 19.591 19.591C19.3142 19.8678 18.9257 20.0482 18.1919 20.1469C17.4365 20.2484 16.4354 20.25 15 20.25H9C7.56459 20.25 6.56347 20.2484 5.80812 20.1469C5.07435 20.0482 4.68577 19.8678 4.40901 19.591C4.13225 19.3142 3.9518 18.9257 3.85315 18.1919C3.75159 17.4365 3.75 16.4354 3.75 15Z" fill="#1C274C" /> </svg> </a>'
+            );
+            $("#music_download").attr(
+              "href",
+              "{{ url_for('download_audio', filename='music/generated_music/music.mid') }}"
+            );
             $("#musicResult").show();
           },
           error: function () {
             $(".loader").hide();
             alert("An error occurred while processing your request.");
+            src =
+              "{{ url_for('serve_audio', filename='music/generated_music/music.mid') }}";
           },
         });
       });
 
       // AJAX for generating vocals
       $("#generateVocalsBtn").click(function (e) {
+        $("#vocalsResult").hide();
         $(".loader").show();
         e.preventDefault();
+        $("#vocals_player").remove();
+
+        var tempo = $("#tempo").val();
+        var gender = $("#gender").val();
+        var voiceindex = $("#voice_index").val();
+        var vibpower = $("#vibrato_power").val();
+        var f0shift = $("#pitch_shift").val();
+        var synalpha = $("#gender_parameter").val();
 
         $.ajax({
           type: "POST",
           url: "/generate_vocals", // Your form action URL for generating vocals
           data: {
-            form_type: "vocals",
+            tempo: tempo,
+            gender: gender,
+            voiceindex: voiceindex,
+            vibpower: vibpower,
+            f0shift: f0shift,
+            synalpha: synalpha,
           },
           success: function (response) {
             $(".loader").hide();
+            let newAudioElement = $(
+              '<audio id="vocals_player" controls>' +
+                '<source src="{{ url_for("serve_audio", filename="vocals/voice.wav")}}" type="audio/wav" />' +
+                "Your browser does not support the audio element." +
+                "</audio>"
+            );
+            $("#vocalsResult").empty().append(newAudioElement);
+            $("#vocalsResult").append(
+              '<a id="vocals_download" href="{{ url_for("download_audio", filename="vocals/voice.wav") }}" download ><svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M12.5535 16.5061C12.4114 16.6615 12.2106 16.75 12 16.75C11.7894 16.75 11.5886 16.6615 11.4465 16.5061L7.44648 12.1311C7.16698 11.8254 7.18822 11.351 7.49392 11.0715C7.79963 10.792 8.27402 10.8132 8.55352 11.1189L11.25 14.0682V3C11.25 2.58579 11.5858 2.25 12 2.25C12.4142 2.25 12.75 2.58579 12.75 3V14.0682L15.4465 11.1189C15.726 10.8132 16.2004 10.792 16.5061 11.0715C16.8118 11.351 16.833 11.8254 16.5535 12.1311L12.5535 16.5061Z" fill="#1C274C" /> <path d="M3.75 15C3.75 14.5858 3.41422 14.25 3 14.25C2.58579 14.25 2.25 14.5858 2.25 15V15.0549C2.24998 16.4225 2.24996 17.5248 2.36652 18.3918C2.48754 19.2919 2.74643 20.0497 3.34835 20.6516C3.95027 21.2536 4.70814 21.5125 5.60825 21.6335C6.47522 21.75 7.57754 21.75 8.94513 21.75H15.0549C16.4225 21.75 17.5248 21.75 18.3918 21.6335C19.2919 21.5125 20.0497 21.2536 20.6517 20.6516C21.2536 20.0497 21.5125 19.2919 21.6335 18.3918C21.75 17.5248 21.75 16.4225 21.75 15.0549V15C21.75 14.5858 21.4142 14.25 21 14.25C20.5858 14.25 20.25 14.5858 20.25 15C20.25 16.4354 20.2484 17.4365 20.1469 18.1919C20.0482 18.9257 19.8678 19.3142 19.591 19.591C19.3142 19.8678 18.9257 20.0482 18.1919 20.1469C17.4365 20.2484 16.4354 20.25 15 20.25H9C7.56459 20.25 6.56347 20.2484 5.80812 20.1469C5.07435 20.0482 4.68577 19.8678 4.40901 19.591C4.13225 19.3142 3.9518 18.9257 3.85315 18.1919C3.75159 17.4365 3.75 16.4354 3.75 15Z" fill="#1C274C" /> </svg> </a>'
+            );
+            $("#vocals_download").attr(
+              "href",
+              "{{ url_for('download_audio', filename='vocals/voice.wav') }}"
+            );
             $("#vocalsResult").show();
           },
           error: function () {
@@ -242,6 +586,107 @@
           },
         });
       });
+
+      // AJAX for generating song
+      $("#generateSongBtn").click(function (e) {
+        e.preventDefault();
+        $(".loader").show();
+        $("#songResult").hide();
+        $("#song_player").remove();
+
+        $.ajax({
+          type: "POST",
+          url: "/generate_song",
+          data: {},
+          success: function (response) {
+            $(".loader").hide();
+            let newAudioElement = $(
+              '<audio id="song_player" controls>' +
+                '<source src="{{ url_for("serve_audio", filename="song/song.wav")}}" type="audio/wav" />' +
+                "Your browser does not support the audio element." +
+                "</audio>"
+            );
+            $("#songResult").empty().append(newAudioElement);
+            $("#songResult").append(
+              '<a id="song_download" href="{{ url_for("download_audio", filename="song/song.wav") }}" download ><svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M12.5535 16.5061C12.4114 16.6615 12.2106 16.75 12 16.75C11.7894 16.75 11.5886 16.6615 11.4465 16.5061L7.44648 12.1311C7.16698 11.8254 7.18822 11.351 7.49392 11.0715C7.79963 10.792 8.27402 10.8132 8.55352 11.1189L11.25 14.0682V3C11.25 2.58579 11.5858 2.25 12 2.25C12.4142 2.25 12.75 2.58579 12.75 3V14.0682L15.4465 11.1189C15.726 10.8132 16.2004 10.792 16.5061 11.0715C16.8118 11.351 16.833 11.8254 16.5535 12.1311L12.5535 16.5061Z" fill="#1C274C" /> <path d="M3.75 15C3.75 14.5858 3.41422 14.25 3 14.25C2.58579 14.25 2.25 14.5858 2.25 15V15.0549C2.24998 16.4225 2.24996 17.5248 2.36652 18.3918C2.48754 19.2919 2.74643 20.0497 3.34835 20.6516C3.95027 21.2536 4.70814 21.5125 5.60825 21.6335C6.47522 21.75 7.57754 21.75 8.94513 21.75H15.0549C16.4225 21.75 17.5248 21.75 18.3918 21.6335C19.2919 21.5125 20.0497 21.2536 20.6517 20.6516C21.2536 20.0497 21.5125 19.2919 21.6335 18.3918C21.75 17.5248 21.75 16.4225 21.75 15.0549V15C21.75 14.5858 21.4142 14.25 21 14.25C20.5858 14.25 20.25 14.5858 20.25 15C20.25 16.4354 20.2484 17.4365 20.1469 18.1919C20.0482 18.9257 19.8678 19.3142 19.591 19.591C19.3142 19.8678 18.9257 20.0482 18.1919 20.1469C17.4365 20.2484 16.4354 20.25 15 20.25H9C7.56459 20.25 6.56347 20.2484 5.80812 20.1469C5.07435 20.0482 4.68577 19.8678 4.40901 19.591C4.13225 19.3142 3.9518 18.9257 3.85315 18.1919C3.75159 17.4365 3.75 16.4354 3.75 15Z" fill="#1C274C" /> </svg> </a>'
+            );
+            $("#song_download").attr(
+              "href",
+              "{{ url_for('download_audio', filename='song/song.wav') }}"
+            );
+            $("#songResult").show();
+          },
+          error: function () {
+            $(".loader").hide();
+            alert("An error occurred while processing your request.");
+          },
+        });
+      });
+
+      // Get the slider element and the paragraph to display the value
+      var slider = document.getElementById("slider_value");
+      var sliderValue = document.getElementById("sliderValue");
+
+      // Update the displayed value as the slider is moved
+      slider.oninput = function () {
+        sliderValue.textContent = this.value;
+      };
+
+      // Get the slider element and the paragraph to display the value
+      var slider1 = document.getElementById("slider_value1");
+      var sliderValue1 = document.getElementById("sliderValue1");
+
+      // Update the displayed value as the slider is moved
+      slider1.oninput = function () {
+        sliderValue1.textContent = this.value;
+      };
+
+      // Get the slider element and the paragraph to display the value
+      var slider2 = document.getElementById("slider_value2");
+      var sliderValue2 = document.getElementById("sliderValue2");
+
+      // Update the displayed value as the slider is moved
+      slider2.oninput = function () {
+        sliderValue2.textContent = this.value;
+      };
+
+      // Get the slider element and the paragraph to display the value
+      var tempo_slider = document.getElementById("tempo");
+      var tempo_value = document.getElementById("tempoValue");
+
+      // Update the displayed value as the slider is moved
+      tempo_slider.oninput = function () {
+        tempo_value.textContent = this.value;
+      };
+
+      // Get the slider element and the paragraph to display the value
+      var vibrato_power = document.getElementById("vibrato_power");
+      var vibrato_power_value = document.getElementById("vibratoPowerValue");
+
+      // Update the displayed value as the slider is moved
+      vibrato_power.oninput = function () {
+        vibrato_power_value.textContent = this.value;
+      };
+
+      // Get the slider element and the paragraph to display the value
+      var pitch_shift = document.getElementById("pitch_shift");
+      var pitch_shift_value = document.getElementById("pitchShiftValue");
+
+      // Update the displayed value as the slider is moved
+      pitch_shift.oninput = function () {
+        pitch_shift_value.textContent = this.value;
+      };
+
+      // Get the slider element and the paragraph to display the value
+      var gender_parameter = document.getElementById("gender_parameter");
+      var gender_parameter_value = document.getElementById(
+        "genderParameterValue"
+      );
+
+      // Update the displayed value as the slider is moved
+      gender_parameter.oninput = function () {
+        gender_parameter_value.textContent = this.value;
+      };
     });
   </script>
 </html>

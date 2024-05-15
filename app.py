@@ -16,9 +16,106 @@ from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.utils import get_file
 from tensorflow.keras.models import load_model
 from midi2voice import renderize_voice
+from midi2audio import FluidSynth
+from pydub import AudioSegment
 
 
 app = Flask(__name__)
+
+
+# MUSIC GENERATION SUB-FUNCTIONS
+
+# Melody-RNN Format is a sequence of 8-bit integers indicating the following:
+# MELODY_NOTE_ON = [0, 127] # (note on at that MIDI pitch)
+MELODY_NOTE_OFF = 128  # (stop playing all previous notes)
+MELODY_NO_EVENT = 129  # (no change from previous event)
+# Each element in the sequence lasts for one sixteenth note.
+# This can encode monophonic music only.
+
+
+def noteArrayToDataFrame(note_array):
+    """
+    Convert a numpy array containing a Melody-RNN sequence into a dataframe.
+    """
+    df = pd.DataFrame({"code": note_array})
+    df["offset"] = df.index
+    df["duration"] = df.index
+    df = df[df.code != MELODY_NO_EVENT]
+    df.duration = (
+        df.duration.diff(-1) * -1 * 0.25
+    )  # calculate durati****ons and change to quarter note fractions
+    df = df.fillna(0.25)
+    return df[["code", "duration"]]
+
+
+def noteArrayToStream(note_array):
+    """
+    Convert a numpy array containing a Melody-RNN sequence into a music21 stream.
+    """
+    df = noteArrayToDataFrame(note_array)
+    print(df)
+    melody_stream = stream.Stream()
+    for index, row in df.iterrows():
+        if row.code == MELODY_NO_EVENT:
+            new_note = (
+                note.Rest()
+            )  # bit of an oversimplification, doesn't produce long notes.
+        elif row.code == MELODY_NOTE_OFF:
+            new_note = note.Rest()
+        else:
+            new_note = note.Note(row.code)
+        new_note.quarterLength = row.duration
+        melody_stream.append(new_note)
+    return melody_stream
+
+
+def slice_sequence_examples(sequence, num_steps):
+    """Slice a sequence into redundant sequences of length num_steps."""
+    xs = []
+    for i in range(len(sequence) - num_steps - 1):
+        example = sequence[i : i + num_steps]
+        xs.append(example)
+    return xs
+
+
+def seq_to_singleton_format(examples):
+    """
+    Return the examples in seq to singleton format.
+    """
+    xs = []
+    ys = []
+    for ex in examples:
+        xs.append(ex[:-1])
+        ys.append(ex[-1])
+    return (xs, ys)
+
+
+def sample(preds, temperature=1.0):
+    """helper function to sample an index from a probability array"""
+    preds = np.asarray(preds).astype("float64")
+    preds = np.log(preds) / temperature
+    exp_preds = np.exp(preds)
+    preds = exp_preds / np.sum(exp_preds)
+    probas = np.random.multinomial(1, preds, 1)
+    return np.argmax(probas)
+
+
+## Sampling function
+
+
+def sample_model(seed, model_name, length=40, temperature=1.0):
+    """Samples a musicRNN given a seed sequence."""
+    generated = []
+    generated.append(seed)
+    next_index = seed
+    for i in range(length):
+        x = np.array([next_index])
+        x = np.reshape(x, (1, 1))
+        preds = model_name.predict(x, verbose=0)[0]
+        next_index = sample(preds, temperature)
+        generated.append(next_index)
+    return np.array(generated)
+
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -48,7 +145,7 @@ def generate_lyrics():
 
         model = tf.keras.models.load_model("./models/lyrics/model.h5")
 
-        num_generate = 500
+        num_generate = 350
 
         input_eval = [char2idx[s] for s in start_string]
         input_eval = tf.expand_dims(input_eval, 0)
@@ -160,7 +257,7 @@ def generate_music():
         melody_stream = noteArrayToStream(o)  # turn into a music21 stream
         # melody_stream.show()  # show the score.
 
-        sp = melody_stream.write("midi", "./models/music/generated_music/output.mid")
+        sp = melody_stream.write("midi", "./models/music/generated_music/music.mid")
 
         if sp:
             return jsonify({"status":True})
@@ -175,7 +272,14 @@ def generate_vocals():
     if request.method=="POST":
         # Get the file paths from the local directory
         text_file_path = "./models/lyrics/generated_lyrics/lyrics.txt"
-        midi_file_path = "./models/music/generated_music/output.mid"
+        midi_file_path = "./models/music/generated_music/music.mid"
+
+        tempo = int(request.form["tempo"])
+        gender = request.form["gender"]
+        voiceindex = int(request.form["voiceindex"])
+        vibpower = int(request.form["vibpower"])
+        f0shift = int(request.form["f0shift"])
+        synalpha = float(request.form["synalpha"])
 
         # # Process the files using midi2voice
         with open(text_file_path, "r") as text:
@@ -184,11 +288,15 @@ def generate_vocals():
         renderize_voice(
             lyrics,
             midi_file_path,
-            tempo=80,
+            tempo=tempo,
             lang="english",
-            gender="female",
-            voiceindex=0,
+            gender=gender,
+            voiceindex=voiceindex,
             out_folder="./models/vocals/",
+            vibpower = vibpower,
+            f0shift = f0shift,
+            synalpha = synalpha,
+
         )
 
         return jsonify({"status":True})
@@ -196,150 +304,34 @@ def generate_vocals():
     else:
         return jsonify({"status":False, "error":"Something went wrong"})
 
-# MUSIC GENERATION SUB-FUNCTIONS
 
-# Melody-RNN Format is a sequence of 8-bit integers indicating the following:
-# MELODY_NOTE_ON = [0, 127] # (note on at that MIDI pitch)
-MELODY_NOTE_OFF = 128  # (stop playing all previous notes)
-MELODY_NO_EVENT = 129  # (no change from previous event)
-# Each element in the sequence lasts for one sixteenth note.
-# This can encode monophonic music only.
+# LYRICS GENERATION MAIN FUNCTION
+@app.route("/generate_song", methods=["POST"])
+def generate_song():
+    if request.method == "POST":
+        input_midi_file = "./models/music/generated_music/music.mid"
+        output_wav_file = "./models/song/music_converted.mid"
+        vocals_wav_file = "./models/vocals/voice.wav"
+        output_combined_file = "./models/song/song.wav"
+        soundfont_file = "soundfont.sf2"
 
+        fs = FluidSynth(soundfont_file) if soundfont_file else FluidSynth()
 
-# def streamToNoteArray(stream):
-#     """
-#     Convert a Music21 sequence to a numpy array of int8s into Melody-RNN format:
-#         0-127 - note on at specified pitch
-#         128   - note off
-#         129   - no event
-#     """
-#     # Part one, extract from stream
-#     total_length = int(np.round(stream.flat.highestTime / 0.25))  # in semiquavers
-#     stream_list = []
-#     for element in stream.flat:
-#         if isinstance(element, note.Note):
-#             stream_list.append(
-#                 [
-#                     np.round(element.offset / 0.25),
-#                     np.round(element.quarterLength / 0.25),
-#                     element.pitch.midi,
-#                 ]
-#             )
-#         elif isinstance(element, chord.Chord):
-#             stream_list.append(
-#                 [
-#                     np.round(element.offset / 0.25),
-#                     np.round(element.quarterLength / 0.25),
-#                     element.sortAscending().pitches[-1].midi,
-#                 ]
-#             )
-#     np_stream_list = np.array(stream_list, dtype=int)
-#     df = pd.DataFrame(
-#         {
-#             "pos": np_stream_list.T[0],
-#             "dur": np_stream_list.T[1],
-#             "pitch": np_stream_list.T[2],
-#         }
-#     )
-#     df = df.sort_values(
-#         ["pos", "pitch"], ascending=[True, False]
-#     )  # sort the dataframe properly
-#     df = df.drop_duplicates(subset=["pos"])  # drop duplicate values
-#     # part 2, convert into a sequence of note events
-#     output = np.zeros(total_length + 1, dtype=np.int16) + np.int16(
-#         MELODY_NO_EVENT
-#     )  # set array full of no events by default.
-#     # Fill in the output list
-#     for i in range(total_length):
-#         if not df[df.pos == i].empty:
-#             n = df[df.pos == i].iloc[0]  # pick the highest pitch at each semiquaver
-#             output[i] = n.pitch  # set note on
-#             output[i + n.dur] = MELODY_NOTE_OFF
-#     return output
+        fs.midi_to_audio(input_midi_file, output_wav_file)
 
+        music = AudioSegment.from_file(output_wav_file, format="wav")
+        vocals = AudioSegment.from_file(vocals_wav_file, format="wav")
 
-def noteArrayToDataFrame(note_array):
-    """
-    Convert a numpy array containing a Melody-RNN sequence into a dataframe.
-    """
-    df = pd.DataFrame({"code": note_array})
-    df["offset"] = df.index
-    df["duration"] = df.index
-    df = df[df.code != MELODY_NO_EVENT]
-    df.duration = (
-        df.duration.diff(-1) * -1 * 0.25
-    )  # calculate durati****ons and change to quarter note fractions
-    df = df.fillna(0.25)
-    return df[["code", "duration"]]
+        music = music[:len(vocals)]
 
+        final_song = music.overlay(vocals)
+        final_song.export(output_combined_file, format="wav")
 
-def noteArrayToStream(note_array):
-    """
-    Convert a numpy array containing a Melody-RNN sequence into a music21 stream.
-    """
-    df = noteArrayToDataFrame(note_array)
-    print(df)
-    melody_stream = stream.Stream()
-    for index, row in df.iterrows():
-        if row.code == MELODY_NO_EVENT:
-            new_note = (
-                note.Rest()
-            )  # bit of an oversimplification, doesn't produce long notes.
-        elif row.code == MELODY_NOTE_OFF:
-            new_note = note.Rest()
-        else:
-            new_note = note.Note(row.code)
-        new_note.quarterLength = row.duration
-        melody_stream.append(new_note)
-    return melody_stream
-
-
-def slice_sequence_examples(sequence, num_steps):
-    """Slice a sequence into redundant sequences of length num_steps."""
-    xs = []
-    for i in range(len(sequence) - num_steps - 1):
-        example = sequence[i : i + num_steps]
-        xs.append(example)
-    return xs
-
-
-def seq_to_singleton_format(examples):
-    """
-    Return the examples in seq to singleton format.
-    """
-    xs = []
-    ys = []
-    for ex in examples:
-        xs.append(ex[:-1])
-        ys.append(ex[-1])
-    return (xs, ys)
-
-
-def sample(preds, temperature=1.0):
-    """helper function to sample an index from a probability array"""
-    preds = np.asarray(preds).astype("float64")
-    preds = np.log(preds) / temperature
-    exp_preds = np.exp(preds)
-    preds = exp_preds / np.sum(exp_preds)
-    probas = np.random.multinomial(1, preds, 1)
-    return np.argmax(probas)
-
-
-## Sampling function
-
-
-def sample_model(seed, model_name, length=40, temperature=1.0):
-    """Samples a musicRNN given a seed sequence."""
-    generated = []
-    generated.append(seed)
-    next_index = seed
-    for i in range(length):
-        x = np.array([next_index])
-        x = np.reshape(x, (1, 1))
-        preds = model_name.predict(x, verbose=0)[0]
-        next_index = sample(preds, temperature)
-        generated.append(next_index)
-    return np.array(generated)
+        os.remove(output_wav_file)
+        
+        return jsonify({"status": True})
+    else:
+        return jsonify({"status": False, "error": "Something went wrong"})
 
 
 @app.route("/audio/<path:filename>")
